@@ -18,5 +18,3 @@
 (define pkg-desc "1d6 is a Racket implementation of the Troll dice-rolling language.")
 
 (define pkg-authors '("jesse@lisp.sh"))
-
-(define scribblings '(("scribblings/1d6.scrbl" ())))

@@ -3,10 +3,8 @@
 (provide read-syntax)
 
 (require racket/contract
-         (only-in (file "tokenizer.rkt")
-                  make-tokenizer)
-         (only-in (file "grammar.rkt")
-                  parse))
+         (file "tokenizer.rkt")
+         (file "grammar.rkt"))
 
 (define (read-syntax path port)
   (datum->syntax

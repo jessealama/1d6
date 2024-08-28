@@ -5,10 +5,23 @@
 
 (require brag/support
          racket/contract
-         racket/port)
+         racket/port
+         racket/list)
 
 (module+ test
   (require rackunit))
+
+(define (is-d? char)
+  (or (char=? char #\d)
+      (char=? char #\D)))
+
+(define (split-roll roll)
+  (define characters (string->list roll))
+  (define d-index (index-where characters is-d?))
+  (define-values (left right)
+    (split-at characters d-index))
+  (cons (string->number (list->string left))
+        (string->number (list->string (rest right)))))
 
 (define (make-tokenizer port)
   (define (next-token)
@@ -22,23 +35,24 @@
         (next-token)]
        [(:: #\# (:* (:~ #\newline)))
         (next-token)]
-       [(:: (union #\d #\D)
-            (:/ #\1 #\9) (:* (:/ #\0 #\9)))
-        (token 'ROLL lexeme)]
-       [(:: (:/ #\1 #\9)
-            (:* (:/ #\0 #\9)))
-        (token 'INTEGER lexeme)]
-       [(union "sum")
-        (token lexeme lexeme)]
-       [(:+ (:/ #\a #\z #\A #\Z))
-        (token 'VARIABLE lexeme)]
        [(union ":="
                "+"
                "*"
                "-"
+               "/"
                "("
-               ")")
-        (token lexeme lexeme)]
+               ")"
+               "mod"
+               "sum"
+               "min"
+               "max")
+        (token (string->symbol lexeme) lexeme)]
+       [(:: (union "d" "D"))
+        (token 'D lexeme)]
+       [(:+ (:/ #\0 #\9))
+        (token 'INTEGER (string->number lexeme))]
+       [(:+ (:/ #\a #\z #\A #\Z))
+        (token 'VARIABLE lexeme)]
        [any-char
         (token 'char lexeme)]))
     (lexer port))
@@ -59,7 +73,8 @@
 
 (module+ main
 
-  (require racket/cmdline)
+  (require racket/cmdline
+           racket/pretty)
 
   (define file-to-process
     (command-line
@@ -70,4 +85,5 @@
     (displayln (format "No such file: ~a" file-to-process))
     (exit 1))
 
-  (tokenize-file file-to-process))
+  (pretty-print
+   (tokenize-file file-to-process)))

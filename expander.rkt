@@ -35,11 +35,8 @@
    . -> .
    (and/c (listof exact-positive-integer?)
           (not/c empty?)))
-  (define num-elements (extract-one-value n))
-  (define num-sides (extract-one-value d))
-  (map (lambda (x)
-         (random-roll num-sides))
-       (make-list num-elements 0)))
+  (map (lambda (x) (random-roll d))
+       (make-list n 0)))
 
 (define/contract (a-roll d)
   (exact-positive-integer? . -> . (list/c exact-positive-integer?))
@@ -55,6 +52,17 @@
   #'(STEPS ...))
 
 (provide program)
+
+(define-macro (binary-product X Y)
+  #'(* (ensure-number X)
+       (ensure-number Y)))
+
+(provide binary-product)
+
+(define-macro (unary-sum T)
+  #'(foldl + 0 T))
+
+(provide unary-sum)
 
 (define-macro-cases term
   [(term "(" X ")")
@@ -72,20 +80,6 @@
 
 (provide term)
 
-(define roll-regexp #px"[dD]([1-9][0-9]*)")
-
-(define-macro (roll-string->value R)
-  #'(match (regexp-match roll-regexp R)
-      [(list _ d)
-       (list (random 1 (string->number d)))]))
-
-(define-macro (scale->value S)
-  #'(match S
-      [(? exact-positive-integer?)
-       S]
-      [(list (? exact-positive-integer? x))
-       x]))
-
 (define-macro (ensure-number N)
   #'(match N
       [(? number?)
@@ -93,23 +87,39 @@
       [(list (? number? x))
        x]))
 
+(define (our-random n)
+  (cond [(<= n 0)
+         (error (format "Cannot make non-positive random numbers! Given ~a" n))]
+        [(= n 1)
+         1]
+        [else
+         (random 1 (add1 n))]))
+
 (define-macro-cases roll
-  [(roll R)
-   #'(roll-string->value R)]
-  [(roll S R)
-   #'(let ([scale-value (scale->value S)]
-           [roll-value (roll-string->value R)])
-       (times-a-roll scale-value roll-value))])
+  [(_ N)
+   #'(our-random N)]
+  [(_ M N)
+   #'(for/list ([i M])
+       (our-random N))])
 
 (provide roll)
 
-(define-macro-cases scale
-  [(scale "(" ROLL ")")
-   #'ROLL])
+(define-macro-cases scaled-roll
+  [(_ (integer S) (integer M))
+   #'(for/list ([i (in-range 1 S)])
+       (our-random M))]
+  [(_ (unscaled-roll R) M)
+   #'(for/list ([i R])
+       (our-random M))])
 
-(provide scale)
+(provide scaled-roll)
 
-(define-macro (assignment IDENTIFIER ":=" R)
+(define-macro (unscaled-roll N)
+  #'(our-random N))
+
+(provide unscaled-roll)
+
+(define-macro (assignment IDENTIFIER R)
   (with-syntax ([name (format-id #'IDENTIFIER "~a" (syntax->datum #'IDENTIFIER))])
     #'(begin
         (define name R)
@@ -118,7 +128,7 @@
 (provide assignment)
 
 (define-macro (integer I)
-  #'(string->number I))
+  #'I)
 
 (provide integer)
 
@@ -126,3 +136,34 @@
   (format-id #'V "~a" (syntax->datum #'V)))
 
 (provide variable)
+
+(define-macro (binary-mod A B)
+  #'(modulo A B))
+
+(provide binary-mod)
+
+(define-macro (binary-quotient A B)
+  #'(quotient A B))
+
+(provide binary-quotient)
+
+(define-macro (binary-difference A B)
+  #'(- A B))
+
+(provide binary-difference)
+
+(define-macro (unary-maximum S)
+  #'(cond [(list? S)
+           (apply max S)]
+          [(number? S)
+           S]))
+
+(provide unary-maximum)
+
+(define-macro (unary-minimum S)
+  #'(cond [(list? S)
+           (apply min S)]
+          [(number? S)
+           S]))
+
+(provide unary-minimum)

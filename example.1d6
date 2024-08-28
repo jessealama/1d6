@@ -1,6 +1,18 @@
 #lang 1d6
 x := d6
-# y := d6
-# x*x*x*y
-# (d4)d6
-# z := d5
+y := d6
+x*x*x*y
+(d4)d6
+
+# How do you add 'sum' to the language?
+z := 5d6
+z
+sum z
+
+sum z mod 2
+
+(max 5d10) / 3
+
+(min z) * 5
+
+(sum z) - 9
